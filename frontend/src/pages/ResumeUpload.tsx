@@ -1,224 +1,329 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { uploadAPI, resumeAPI } from '../services/api';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useDropzone } from 'react-dropzone';
+import { 
+  Upload, 
+  FileText, 
+  Brain, 
+  Sparkles, 
+  ArrowRight,
+  CheckCircle,
+  AlertCircle,
+  X,
+  Loader2,
+  Zap,
+  Target,
+  BarChart3
+} from 'lucide-react';
+import { uploadAPI, analysisAPI } from '../services/api';
 import toast from 'react-hot-toast';
-import { Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
-
-interface UploadFormData {
-  title: string;
-  jobDescription: string;
-}
 
 const ResumeUpload: React.FC = () => {
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [jobDescriptionFile, setJobDescriptionFile] = useState<File | null>(null);
-  const [resumeText, setResumeText] = useState('');
-  const [jobDescriptionText, setJobDescriptionText] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const navigate = useNavigate();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors }
-  } = useForm<UploadFormData>();
-
-  const handleResumeUpload = async (file: File) => {
-    try {
-      const response = await uploadAPI.uploadResume(file);
-      setResumeText(response.extractedText);
-      toast.success('Resume processed successfully');
-    } catch (error) {
-      toast.error('Failed to process resume');
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      setFile(file);
+      toast.success('File uploaded successfully!');
     }
-  };
+  }, []);
 
-  const handleJobDescriptionUpload = async (file: File) => {
-    try {
-      const response = await uploadAPI.uploadJobDescription(file);
-      setJobDescriptionText(response.extractedText);
-      toast.success('Job description processed successfully');
-    } catch (error) {
-      toast.error('Failed to process job description');
-    }
-  };
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'text/plain': ['.txt']
+    },
+    maxFiles: 1,
+    onDragEnter: () => setDragActive(true),
+    onDragLeave: () => setDragActive(false)
+  });
 
-  const onSubmit = async (data: UploadFormData) => {
-    if (!resumeText) {
-      toast.error('Please upload and process a resume first');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!file || !jobDescription.trim()) {
+      toast.error('Please upload a file and provide a job description');
       return;
     }
 
     setLoading(true);
+
     try {
-      await resumeAPI.createResume({
-        title: data.title,
-        content: resumeText,
-        jobDescription: jobDescriptionText || data.jobDescription
-      });
+      // Upload file
+      const uploadResponse = await uploadAPI.uploadResume(file);
       
-      toast.success('Resume saved successfully');
-      navigate('/dashboard');
-    } catch (error) {
-      toast.error('Failed to save resume');
+      // Analyze resume
+      const analysisResponse = await analysisAPI.analyzeResume({
+        resumeText: uploadResponse.text,
+        jobDescription: jobDescription.trim(),
+        fileName: file.name,
+        fileType: file.type
+      });
+
+      toast.success('Analysis completed successfully!');
+      navigate(`/analysis/${analysisResponse.analysis._id}`);
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      toast.error(error.response?.data?.error || 'Analysis failed');
     } finally {
       setLoading(false);
     }
   };
 
+  const removeFile = () => {
+    setFile(null);
+    toast.success('File removed');
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Upload Resume</h1>
-        <p className="text-gray-600">Upload your resume and job description for AI-powered optimization</p>
-      </div>
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
+      <div className="lg:ml-80 p-6">
+        {/* Header */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <h1 className="text-4xl font-bold mb-2">
+            <span className="text-gradient-primary">AI Resume Analysis</span>
+          </h1>
+          <p className="text-xl text-gray-400">
+            Upload your resume and job description for comprehensive AI-powered analysis
+          </p>
+        </motion.div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        {/* Resume Upload */}
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Resume Upload</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload Resume (PDF or DOCX)
-              </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="resume-upload"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
-                    >
-                      <span>Upload a file</span>
-                      <input
-                        id="resume-upload"
-                        name="resume-upload"
-                        type="file"
-                        accept=".pdf,.docx,.doc"
-                        className="sr-only"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setResumeFile(file);
-                            handleResumeUpload(file);
-                          }
-                        }}
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PDF, DOCX up to 10MB</p>
-                </div>
-              </div>
-              {resumeFile && (
-                <div className="mt-2 flex items-center text-sm text-green-600">
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  {resumeFile.name} uploaded successfully
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Job Description Upload */}
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Job Description</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload Job Description (PDF or DOCX) - Optional
-              </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                <div className="space-y-1 text-center">
-                  <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="job-upload"
-                      className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
-                    >
-                      <span>Upload a file</span>
-                      <input
-                        id="job-upload"
-                        name="job-upload"
-                        type="file"
-                        accept=".pdf,.docx,.doc"
-                        className="sr-only"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setJobDescriptionFile(file);
-                            handleJobDescriptionUpload(file);
-                          }
-                        }}
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PDF, DOCX up to 10MB</p>
-                </div>
-              </div>
-              {jobDescriptionFile && (
-                <div className="mt-2 flex items-center text-sm text-green-600">
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  {jobDescriptionFile.name} uploaded successfully
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="jobDescription" className="block text-sm font-medium text-gray-700 mb-2">
-                Or paste job description text
-              </label>
-              <textarea
-                {...register('jobDescription')}
-                rows={6}
-                className="input-field"
-                placeholder="Paste the job description here..."
-                disabled={!!jobDescriptionText}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Resume Details */}
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Resume Details</h2>
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              Resume Title
-            </label>
-            <input
-              {...register('title', { required: 'Title is required' })}
-              type="text"
-              className="input-field"
-              placeholder="e.g., Software Engineer Resume"
-            />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={loading || !resumeText}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        <div className="max-w-4xl mx-auto">
+          <motion.form 
+            onSubmit={handleSubmit}
+            className="space-y-8"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
           >
-            {loading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-            ) : null}
-            Save Resume
-          </button>
+            {/* File Upload Section */}
+            <motion.div variants={itemVariants}>
+              <div className="card p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#4f9dff] to-[#3b82f6] rounded-2xl flex items-center justify-center">
+                    <Upload className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white">Upload Resume</h2>
+                </div>
+
+                <div
+                  {...getRootProps()}
+                  className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-500 cursor-pointer ${
+                    isDragActive || dragActive
+                      ? 'border-[#4f9dff] bg-[#4f9dff]/10'
+                      : 'border-[#262626] hover:border-[#4f9dff]/50 hover:bg-[#4f9dff]/5'
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  
+                  <motion.div
+                    className="space-y-4"
+                    animate={isDragActive ? { scale: 1.05 } : { scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="w-20 h-20 bg-gradient-to-br from-[#4f9dff]/20 to-[#a78bfa]/20 rounded-3xl flex items-center justify-center mx-auto">
+                      <FileText className="w-10 h-10 text-[#4f9dff]" />
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        {isDragActive ? 'Drop your file here' : 'Drag & drop your resume'}
+                      </h3>
+                      <p className="text-gray-400 mb-4">
+                        Supports PDF and TXT files up to 10MB
+                      </p>
+                      <div className="btn-secondary inline-flex items-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Choose File
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* File Preview */}
+                <AnimatePresence>
+                  {file && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="mt-6 p-4 bg-[#1a1a1a]/40 backdrop-blur-xl border border-[#262626]/50 rounded-2xl"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-xl flex items-center justify-center">
+                            <CheckCircle className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-white">{file.name}</p>
+                            <p className="text-sm text-gray-400">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <motion.button
+                          type="button"
+                          onClick={removeFile}
+                          className="p-2 text-gray-400 hover:text-[#ef4444] transition-colors"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                        >
+                          <X className="w-5 h-5" />
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+
+            {/* Job Description Section */}
+            <motion.div variants={itemVariants}>
+              <div className="card p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#a78bfa] to-[#8b5cf6] rounded-2xl flex items-center justify-center">
+                    <Target className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white">Job Description</h2>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="block text-sm font-medium text-gray-300">
+                    Paste the job description you're applying for
+                  </label>
+                  <textarea
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    className="textarea-field h-32"
+                    placeholder="Paste the complete job description here. This helps our AI analyze how well your resume matches the requirements..."
+                    required
+                  />
+                  <p className="text-sm text-gray-400">
+                    The more detailed the job description, the better our analysis will be.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Analysis Features */}
+            <motion.div variants={itemVariants}>
+              <div className="card p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-2xl flex items-center justify-center">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white">AI Analysis Features</h2>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-4 bg-[#1a1a1a]/40 backdrop-blur-xl border border-[#262626]/50 rounded-2xl">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#4f9dff] to-[#3b82f6] rounded-xl flex items-center justify-center">
+                        <BarChart3 className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white">ATS Score</h3>
+                        <p className="text-sm text-gray-400">Compatibility rating</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-4 bg-[#1a1a1a]/40 backdrop-blur-xl border border-[#262626]/50 rounded-2xl">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#a78bfa] to-[#8b5cf6] rounded-xl flex items-center justify-center">
+                        <Target className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white">Keyword Matching</h3>
+                        <p className="text-sm text-gray-400">Skill alignment analysis</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 p-4 bg-[#1a1a1a]/40 backdrop-blur-xl border border-[#262626]/50 rounded-2xl">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#10b981] to-[#059669] rounded-xl flex items-center justify-center">
+                        <Zap className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white">Improvement Tips</h3>
+                        <p className="text-sm text-gray-400">Personalized suggestions</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 p-4 bg-[#1a1a1a]/40 backdrop-blur-xl border border-[#262626]/50 rounded-2xl">
+                      <div className="w-10 h-10 bg-gradient-to-br from-[#f59e0b] to-[#d97706] rounded-xl flex items-center justify-center">
+                        <Sparkles className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-white">AI Insights</h3>
+                        <p className="text-sm text-gray-400">Advanced recommendations</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Submit Button */}
+            <motion.div variants={itemVariants} className="text-center">
+              <motion.button
+                type="submit"
+                disabled={loading || !file || !jobDescription.trim()}
+                className="btn-primary text-lg px-12 py-4 flex items-center gap-3 mx-auto"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Analyzing Resume...
+                  </>
+                ) : (
+                  <>
+                    <Brain className="w-5 h-5" />
+                    Analyze Resume
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </motion.button>
+              
+              {(!file || !jobDescription.trim()) && (
+                <p className="text-sm text-gray-400 mt-4">
+                  Please upload a file and provide a job description to continue
+                </p>
+              )}
+            </motion.div>
+          </motion.form>
         </div>
-      </form>
+      </div>
     </div>
   );
 };
 
 export default ResumeUpload;
-
-

@@ -1,19 +1,27 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI } from '../services/api';
+import toast from 'react-hot-toast';
 
 interface User {
   id: string;
-  name: string;
   email: string;
+  firstName: string;
+  lastName: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
   loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+  }) => Promise<void>;
+  logout: () => void;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,48 +40,58 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
-      if (token) {
+      const token = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
+      
+      if (token && savedUser) {
         try {
-          const userData = await authAPI.getCurrentUser();
-          setUser(userData);
+          const response = await authAPI.getCurrentUser();
+          setUser(response.user);
         } catch (error) {
-          console.error('Auth initialization error:', error);
           localStorage.removeItem('token');
-          setToken(null);
+          localStorage.removeItem('user');
         }
       }
       setLoading(false);
     };
 
     initAuth();
-  }, [token]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await authAPI.login(email, password);
-      const { token: newToken, user: userData } = response;
+      const response = await authAPI.login({ email, password });
+      const { token, user: userData } = response;
       
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
+      
+      toast.success('Login successful!');
     } catch (error) {
       throw error;
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+  }) => {
     try {
-      const response = await authAPI.register(name, email, password);
-      const { token: newToken, user: userData } = response;
+      const response = await authAPI.register(userData);
+      const { token, user: newUser } = response;
       
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
-      setUser(userData);
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(newUser));
+      setUser(newUser);
+      
+      toast.success('Registration successful!');
     } catch (error) {
       throw error;
     }
@@ -81,17 +99,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
-    setToken(null);
+    localStorage.removeItem('user');
     setUser(null);
+    toast.success('Logged out successfully');
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
-    token,
+    loading,
     login,
     register,
     logout,
-    loading
+    isAuthenticated: !!user,
   };
 
   return (
@@ -100,5 +119,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
 

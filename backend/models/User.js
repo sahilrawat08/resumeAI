@@ -2,11 +2,6 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true
-  },
   email: {
     type: String,
     required: true,
@@ -16,9 +11,43 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
-    minlength: 6
+    minlength: 6,
+    required: function() {
+      return this.authProvider === 'email';
+    }
   },
+  firstName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  lastName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  profilePicture: {
+    type: String,
+    default: null
+  },
+  authProvider: {
+    type: String,
+    enum: ['email', 'google'],
+    default: 'email'
+  },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  analyses: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Analysis'
+  }],
   createdAt: {
     type: Date,
     default: Date.now
@@ -31,7 +60,7 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   
   try {
     const salt = await bcrypt.genSalt(10);
@@ -42,15 +71,16 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Update updatedAt field
-userSchema.pre('save', function(next) {
-  this.updatedAt = Date.now();
-  next();
-});
-
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+// Update timestamp on save
+userSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
 module.exports = mongoose.model('User', userSchema);
+

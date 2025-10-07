@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongo:27017/resumeai
+      - JWT_SECRET=your-super-secret-jwt-key-here
+      - OPENAI_API_KEY=your-openai-api-key-here
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - mongo
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo_data:

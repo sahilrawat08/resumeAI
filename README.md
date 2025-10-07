@@ -1,79 +1,75 @@
-# ResumeAI - AI-Powered Resume Optimization Platform
+# ResumeAI 🚀
 
-A comprehensive full-stack application that uses AI to analyze and optimize resumes for better job application success.
+[![GitHub stars](https://img.shields.io/github/stars/sahilrawat08/resumeAI?style=social)](https://github.com/sahilrawat08/resumeAI)
+[![GitHub forks](https://img.shields.io/github/forks/sahilrawat08/resumeAI?style=social)](https://github.com/sahilrawat08/resumeAI)
+[![GitHub issues](https://img.shields.io/github/issues/sahilrawat08/resumeAI)](https://github.com/sahilrawat08/resumeAI/issues)
+[![GitHub license](https://img.shields.io/github/license/sahilrawat08/resumeAI)](https://github.com/sahilrawat08/resumeAI/blob/main/LICENSE)
 
-## 🚀 Features
+> **AI-Powered Resume Optimization Platform** - Transform your resume with cutting-edge NLP technology and modern dark-themed UI
 
-- **PDF/DOCX Resume Parsing**: Upload and extract text from PDF and Word documents
-- **AI-Powered Analysis**: Analyze resumes against job descriptions using OpenAI GPT-4
-- **Smart Optimization**: Get personalized suggestions for keyword optimization, ATS compatibility, and content improvements
-- **Real-time Processing**: Instant analysis and optimization suggestions
-- **User Authentication**: Secure JWT-based authentication system
-- **Responsive Design**: Modern, mobile-friendly interface built with Tailwind CSS
+## 🌟 Features
+
+### 🎨 **Modern Dark Theme UI**
+- **Glassmorphism Design** - Beautiful translucent cards with backdrop blur
+- **Smooth Animations** - Framer Motion powered transitions
+- **Responsive Layout** - Mobile-first design with collapsible sidebar
+- **Dark Color Palette** - Professional `#0a0a0a` background with `#4f9dff` accents
+
+### 🤖 **AI-Powered Analysis**
+- **ATS Compatibility Scoring** - Get 0-100% ATS compatibility scores
+- **Keyword Matching** - Advanced NLP keyword extraction and matching
+- **Skill Gap Analysis** - Identify missing skills and competencies
+- **Personalized Suggestions** - AI-generated improvement recommendations
+
+### 📊 **Interactive Analytics**
+- **Real-time Charts** - Dark-themed Recharts visualizations
+- **Performance Metrics** - Track your resume optimization progress
+- **Export Reports** - Download detailed analysis reports
+- **Historical Data** - View past analyses and improvements
+
+### 🔐 **Authentication & Security**
+- **JWT Authentication** - Secure token-based authentication
+- **User Management** - Profile management and settings
+- **Data Privacy** - Secure data handling and storage
+- **CORS Configuration** - Production-ready CORS setup
 
 ## 🛠️ Tech Stack
 
-### Frontend
-- **React.js** with TypeScript
-- **Tailwind CSS** for styling
-- **React Hook Form** for form management
+### **Frontend**
+- **React.js 18** with TypeScript
+- **TailwindCSS** for styling
+- **Framer Motion** for animations
+- **Recharts** for data visualization
 - **React Router** for navigation
 - **Axios** for API calls
 - **React Hot Toast** for notifications
-- **Lucide React** for icons
 
-### Backend
+### **Backend**
 - **Node.js** with Express.js
 - **MongoDB** with Mongoose ODM
 - **JWT** for authentication
-- **bcryptjs** for password hashing
 - **Multer** for file uploads
-- **Helmet** for security
-- **Express Rate Limit** for API protection
+- **OpenAI API** for NLP processing
+- **CORS** for cross-origin requests
 
-### AI/ML & File Processing
-- **OpenAI GPT-4 API** for AI analysis
-- **pdf-parse** for PDF text extraction
-- **Mammoth.js** for DOCX processing
-- **PDF-lib** for PDF manipulation
-- **Natural** for NLP processing
-- **Compromise.js** for text analysis
+### **Deployment**
+- **Vercel** ready configuration
+- **MongoDB Atlas** support
+- **Environment variables** management
 
-## 📁 Project Structure
-
-```
-resumeai/
-├── backend/
-│   ├── models/          # MongoDB models
-│   ├── routes/          # API routes
-│   ├── middleware/      # Custom middleware
-│   ├── server.js        # Express server
-│   └── package.json     # Backend dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── pages/       # Page components
-│   │   ├── contexts/    # React contexts
-│   │   ├── services/    # API services
-│   │   └── App.tsx      # Main app component
-│   └── package.json     # Frontend dependencies
-└── package.json         # Root package.json
-```
-
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-
 - Node.js (v16 or higher)
-- MongoDB (local or MongoDB Atlas)
+- MongoDB (local or Atlas)
 - OpenAI API key
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd resumeai
+   git clone https://github.com/sahilrawat08/resumeAI.git
+   cd resumeAI
    ```
 
 2. **Install dependencies**
@@ -81,137 +77,142 @@ resumeai/
    npm run install-all
    ```
 
-3. **Set up environment variables**
+3. **Environment Setup**
+   ```bash
+   # Backend
+   cp backend/env.example backend/.env
    
-   Create a `.env` file in the `backend` directory:
-   ```env
-   NODE_ENV=development
+   # Update backend/.env with your values:
+   MONGODB_URI=your-mongodb-connection-string
+   JWT_SECRET=your-super-secret-jwt-key
+   OPENAI_API_KEY=your-openai-api-key
    PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/resumeai
-   JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
    FRONTEND_URL=http://localhost:3000
-   OPENAI_API_KEY=your-openai-api-key-here
-   MAX_FILE_SIZE=10485760
-   UPLOAD_PATH=./uploads
    ```
 
-4. **Start MongoDB**
+4. **Start Development Servers**
    ```bash
-   # If using local MongoDB
-   mongod
-   
-   # Or use MongoDB Atlas (cloud)
-   # Update MONGODB_URI in .env file
-   ```
-
-5. **Run the application**
-   ```bash
-   # Start both frontend and backend
    npm run dev
-   
-   # Or start individually
-   npm run server  # Backend only
-   npm run client  # Frontend only
    ```
 
-6. **Access the application**
+5. **Access the Application**
    - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
+   - Backend API: http://localhost:5000/api
+   - Health Check: http://localhost:5000/api/health
 
-## 📖 API Endpoints
+## 📁 Project Structure
+
+```
+resumeAI/
+├── frontend/                 # React.js frontend
+│   ├── src/
+│   │   ├── components/      # Reusable components
+│   │   ├── pages/          # Page components
+│   │   ├── contexts/       # React contexts
+│   │   ├── services/       # API services
+│   │   └── index.css       # Global styles
+│   ├── public/             # Static assets
+│   └── package.json
+├── backend/                # Node.js backend
+│   ├── routes/             # API routes
+│   ├── models/             # Database models
+│   ├── middleware/         # Custom middleware
+│   ├── server.js          # Main server file
+│   └── package.json
+├── package.json           # Root package.json
+└── README.md
+```
+
+## 🔧 API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
 - `GET /api/auth/me` - Get current user
 
+### Resume Analysis
+- `POST /api/analyze` - Analyze resume
+- `GET /api/analyze` - Get user analyses
+- `GET /api/analyze/:id` - Get specific analysis
+- `GET /api/analyze/export/:id` - Export analysis report
+
 ### File Upload
-- `POST /api/upload/resume` - Upload resume file
-- `POST /api/upload/job-description` - Upload job description
+- `POST /api/upload` - Upload resume file
 
-### AI Analysis
-- `POST /api/ai/analyze` - Analyze resume against job description
-- `POST /api/ai/optimize` - Generate optimized resume
+## 🎯 ATS Scoring Algorithm
 
-### Resume Management
-- `GET /api/resume` - Get all user resumes
-- `GET /api/resume/:id` - Get specific resume
-- `POST /api/resume` - Create new resume
-- `PUT /api/resume/:id` - Update resume
-- `DELETE /api/resume/:id` - Delete resume
+The ATS compatibility score is calculated using a weighted formula:
 
-## 🔧 Configuration
+```javascript
+ATS_Score = (keywordMatch * 0.5) + (skillMatch * 0.3) + (actionVerbCount * 0.2)
+```
 
-### OpenAI API Setup
-1. Get your API key from [OpenAI](https://platform.openai.com/api-keys)
-2. Add it to your `.env` file as `OPENAI_API_KEY`
-
-### MongoDB Setup
-- **Local**: Install MongoDB and run `mongod`
-- **Cloud**: Use MongoDB Atlas and update `MONGODB_URI`
-
-### File Upload Limits
-- Maximum file size: 10MB (configurable in `.env`)
-- Supported formats: PDF, DOCX, DOC
+- **Keyword Match (50%)** - Relevance of keywords from job description
+- **Skill Match (30%)** - Matching technical and soft skills
+- **Action Verb Count (20%)** - Presence of strong action verbs
 
 ## 🚀 Deployment
 
-### Backend Deployment (AWS EC2)
-1. Set up EC2 instance
-2. Install Node.js and MongoDB
-3. Clone repository
-4. Install dependencies
-5. Set environment variables
-6. Use PM2 for process management
+### Vercel Deployment
 
-### Frontend Deployment (Vercel)
-1. Connect GitHub repository to Vercel
-2. Set build command: `cd frontend && npm run build`
-3. Set output directory: `frontend/build`
-4. Add environment variables
+1. **Backend Deployment**
+   ```bash
+   cd backend
+   vercel --prod
+   ```
 
-### Database (MongoDB Atlas)
-1. Create MongoDB Atlas account
-2. Create cluster
-3. Get connection string
-4. Update `MONGODB_URI` in environment variables
+2. **Frontend Deployment**
+   ```bash
+   cd frontend
+   vercel --prod
+   ```
 
-## 🔒 Security Features
+3. **Environment Variables**
+   - Set production environment variables in Vercel dashboard
+   - Update `FRONTEND_URL` to your production frontend URL
 
-- JWT-based authentication
-- Password hashing with bcrypt
-- Rate limiting on API endpoints
-- Helmet.js for security headers
-- CORS configuration
-- File type validation
-- Input validation and sanitization
+### MongoDB Atlas Setup
+
+1. Create a MongoDB Atlas cluster
+2. Get connection string
+3. Update `MONGODB_URI` in environment variables
 
 ## 🤝 Contributing
 
+We welcome contributions! Please follow these steps:
+
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 📄 License
+## 📝 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## 👨‍💻 Author
 
-For support and questions:
-- Create an issue in the repository
-- Check the documentation
-- Review the API endpoints
+**Sahil Rawat**
+- GitHub: [@sahilrawat08](https://github.com/sahilrawat08)
+- LinkedIn: [Sahil Rawat](https://linkedin.com/in/sahilrawat08)
 
-## 🔮 Future Enhancements
+## 🙏 Acknowledgments
 
-- Resume templates
-- Industry-specific optimization
-- ATS compatibility scoring
-- Resume comparison tools
-- Export to multiple formats
-- Advanced analytics dashboard
+- OpenAI for providing the NLP API
+- React team for the amazing framework
+- TailwindCSS for the utility-first CSS framework
+- Framer Motion for smooth animations
+- Recharts for beautiful data visualizations
 
+## 📞 Support
 
+If you have any questions or need help, please:
+
+1. Check the [Issues](https://github.com/sahilrawat08/resumeAI/issues) page
+2. Create a new issue if your problem isn't already reported
+3. Contact the maintainer
+
+---
+
+⭐ **Star this repository if you found it helpful!**

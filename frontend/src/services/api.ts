@@ -1,7 +1,12 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? 'https://resumeai-backend.vercel.app/api' 
+    : 'http://localhost:5000/api');
 
+// Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -23,100 +28,124 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle auth errors
+// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
+    // Handle CORS errors
+    if (error.code === 'ERR_NETWORK' || error.message.includes('CORS')) {
+      toast.error('Network error. Please check if the backend server is running and CORS is configured correctly.');
+    } else {
+      const message = error.response?.data?.error || 'An error occurred';
+      toast.error(message);
+    }
+    
     return Promise.reject(error);
   }
 );
 
+// Auth API
 export const authAPI = {
-  login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
+  register: async (userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+  }) => {
+    const response = await api.post('/auth/register', userData);
     return response.data;
   },
-  
-  register: async (name: string, email: string, password: string) => {
-    const response = await api.post('/auth/register', { name, email, password });
+
+  login: async (credentials: { email: string; password: string }) => {
+    const response = await api.post('/auth/login', credentials);
     return response.data;
   },
-  
+
   getCurrentUser: async () => {
     const response = await api.get('/auth/me');
     return response.data;
-  }
+  },
 };
 
+// Upload API
 export const uploadAPI = {
   uploadResume: async (file: File) => {
     const formData = new FormData();
     formData.append('resume', file);
     
-    const response = await api.post('/upload/resume', formData, {
+    const response = await api.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     return response.data;
   },
-  
-  uploadJobDescription: async (file: File) => {
-    const formData = new FormData();
-    formData.append('jobDescription', file);
-    
-    const response = await api.post('/upload/job-description', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  }
 };
 
-export const aiAPI = {
-  analyzeResume: async (resumeText: string, jobDescription: string) => {
-    const response = await api.post('/ai/analyze', { resumeText, jobDescription });
+// Analysis API
+export const analysisAPI = {
+  analyzeResume: async (data: {
+    resumeText: string;
+    jobDescription: string;
+    fileName: string;
+    fileType: string;
+  }) => {
+    const response = await api.post('/analyze', data);
     return response.data;
   },
-  
-  optimizeResume: async (resumeText: string, jobDescription: string, optimizationFocus?: string) => {
-    const response = await api.post('/ai/optimize', { resumeText, jobDescription, optimizationFocus });
+
+  getAnalyses: async () => {
+    const response = await api.get('/analyze');
     return response.data;
-  }
+  },
+
+  getAnalysis: async (id: string) => {
+    const response = await api.get(`/analyze/${id}`);
+    return response.data;
+  },
+
+  exportAnalysis: async (id: string) => {
+    const response = await api.get(`/analyze/export/${id}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
 
+// Resume API
 export const resumeAPI = {
-  getResumes: async () => {
-    const response = await api.get('/resume');
+  getAnalyses: async (page = 1, limit = 10) => {
+    const response = await api.get(`/resume/analyses?page=${page}&limit=${limit}`);
     return response.data;
   },
-  
-  getResume: async (id: string) => {
-    const response = await api.get(`/resume/${id}`);
+
+  getAnalysis: async (id: string) => {
+    const response = await api.get(`/resume/analyses/${id}`);
     return response.data;
   },
-  
-  createResume: async (resumeData: any) => {
-    const response = await api.post('/resume', resumeData);
+
+  deleteAnalysis: async (id: string) => {
+    const response = await api.delete(`/resume/analyses/${id}`);
     return response.data;
   },
-  
-  updateResume: async (id: string, resumeData: any) => {
-    const response = await api.put(`/resume/${id}`, resumeData);
+
+  getStats: async () => {
+    const response = await api.get('/resume/stats');
     return response.data;
   },
-  
-  deleteResume: async (id: string) => {
-    const response = await api.delete(`/resume/${id}`);
+
+  exportAnalysis: async (id: string) => {
+    const response = await api.get(`/resume/export/${id}`, {
+      responseType: 'blob',
+    });
     return response.data;
-  }
+  },
 };
 
 export default api;
-
-

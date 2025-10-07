@@ -1,18 +1,16 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const pdfParse = require('pdf-parse');
-const mammoth = require('mammoth');
-const { PDFDocument } = require('pdf-lib');
-const auth = require('../middleware/auth');
+const fs = require('fs');
+const path = require('path');
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = './uploads';
+    const uploadDir = 'uploads/';
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -24,94 +22,96 @@ const storage = multer.diskStorage({
   }
 });
 
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['application/pdf', 'text/plain'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only PDF and TXT files are allowed'), false);
+  }
+};
+
 const upload = multer({
   storage: storage,
+  fileFilter: fileFilter,
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 // 10MB
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.pdf', '.docx', '.doc'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (allowedTypes.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF and DOCX files are allowed'));
-    }
+    fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
 
-// Upload resume file
-router.post('/resume', auth, upload.single('resume'), async (req, res) => {
+// @route   POST /api/upload
+// @desc    Upload and extract text from resume file
+// @access  Private
+router.post('/', authMiddleware, upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ error: 'No file uploaded' });
     }
 
     const filePath = req.file.path;
-    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+    const fileType = req.file.mimetype === 'application/pdf' ? 'pdf' : 'txt';
     let extractedText = '';
 
-    // Extract text based on file type
-    if (fileExtension === '.pdf') {
-      const dataBuffer = fs.readFileSync(filePath);
-      const pdfData = await pdfParse(dataBuffer);
-      extractedText = pdfData.text;
-    } else if (fileExtension === '.docx' || fileExtension === '.doc') {
-      const result = await mammoth.extractRawText({ path: filePath });
-      extractedText = result.value;
+    if (fileType === 'pdf') {
+      try {
+        const dataBuffer = fs.readFileSync(filePath);
+        const pdfData = await pdfParse(dataBuffer);
+        extractedText = pdfData.text;
+      } catch (error) {
+        console.error('PDF parsing error:', error);
+        return res.status(400).json({ error: 'Failed to parse PDF file' });
+      }
+    } else if (fileType === 'txt') {
+      try {
+        extractedText = fs.readFileSync(filePath, 'utf8');
+      } catch (error) {
+        console.error('TXT reading error:', error);
+        return res.status(400).json({ error: 'Failed to read text file' });
+      }
     }
 
-    // Clean up uploaded file
+    // Clean up the uploaded file
     fs.unlinkSync(filePath);
 
+    // Basic validation
+    if (!extractedText.trim()) {
+      return res.status(400).json({ error: 'No text content found in the file' });
+    }
+
     res.json({
-      message: 'File processed successfully',
-      extractedText: extractedText,
+      success: true,
+      extractedText: extractedText.trim(),
       fileName: req.file.originalname,
+      fileType: fileType,
       fileSize: req.file.size
     });
 
   } catch (error) {
-    console.error('File upload error:', error);
-    res.status(500).json({ message: 'Error processing file' });
+    console.error('Upload error:', error);
+    
+    // Clean up file if it exists
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    res.status(500).json({ error: 'Server error during file upload' });
   }
 });
 
-// Upload job description
-router.post('/job-description', auth, upload.single('jobDescription'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+// Error handling middleware for multer
+router.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large. Maximum size is 5MB.' });
     }
-
-    const filePath = req.file.path;
-    const fileExtension = path.extname(req.file.originalname).toLowerCase();
-    let extractedText = '';
-
-    // Extract text based on file type
-    if (fileExtension === '.pdf') {
-      const dataBuffer = fs.readFileSync(filePath);
-      const pdfData = await pdfParse(dataBuffer);
-      extractedText = pdfData.text;
-    } else if (fileExtension === '.docx' || fileExtension === '.doc') {
-      const result = await mammoth.extractRawText({ path: filePath });
-      extractedText = result.value;
-    }
-
-    // Clean up uploaded file
-    fs.unlinkSync(filePath);
-
-    res.json({
-      message: 'Job description processed successfully',
-      extractedText: extractedText,
-      fileName: req.file.originalname,
-      fileSize: req.file.size
-    });
-
-  } catch (error) {
-    console.error('Job description upload error:', error);
-    res.status(500).json({ message: 'Error processing job description' });
   }
+  
+  if (error.message === 'Only PDF and TXT files are allowed') {
+    return res.status(400).json({ error: error.message });
+  }
+  
+  res.status(500).json({ error: 'File upload error' });
 });
 
 module.exports = router;
+
