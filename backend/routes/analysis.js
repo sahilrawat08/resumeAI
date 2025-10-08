@@ -18,7 +18,7 @@ router.post('/', authMiddleware, [
   body('resumeText').notEmpty().withMessage('Resume text is required'),
   body('jobDescription').notEmpty().withMessage('Job description is required'),
   body('fileName').notEmpty().withMessage('File name is required'),
-  body('fileType').isIn(['pdf', 'txt']).withMessage('File type must be pdf or txt')
+  body('fileType').isIn(['pdf', 'txt', 'docx']).withMessage('File type must be pdf, docx, or txt')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -46,9 +46,9 @@ router.post('/', authMiddleware, [
     // Calculate improvement potential
     const improvementPotential = Math.max(0, 100 - atsScore);
 
-    // Save analysis to database
+    // Save analysis to database (everything is simple strings now)
     const analysis = new Analysis({
-      user: req.user._id,
+      user: req.user._id, // authMiddleware sets req.user
       resumeText,
       jobDescription,
       fileName,
@@ -67,27 +67,32 @@ router.post('/', authMiddleware, [
 
     await analysis.save();
 
-    // Update user's analyses array
-    await req.user.updateOne({ $push: { analyses: analysis._id } });
+    console.log('✅ Analysis saved successfully:', analysis._id);
 
     res.json({
       success: true,
       analysisId: analysis._id,
-      atsScore,
-      matchedKeywords: analysisResult.matchedKeywords,
-      missingKeywords: analysisResult.missingKeywords,
-      suggestions,
-      readabilityScore,
-      modelConfidence: Math.round(modelConfidence * 10) / 10,
-      improvementPotential: Math.round(improvementPotential),
-      keywordMatchRatio: analysisResult.keywordMatchRatio,
-      skillMatchRatio: analysisResult.skillMatchRatio,
-      actionVerbCount: analysisResult.actionVerbCount
+      analysis: {
+        atsScore,
+        matchedKeywords: analysisResult.matchedKeywords,
+        missingKeywords: analysisResult.missingKeywords,
+        suggestions,
+        readabilityScore,
+        modelConfidence: Math.round(modelConfidence * 10) / 10,
+        improvementPotential: Math.round(improvementPotential),
+        keywordMatchRatio: analysisResult.keywordMatchRatio,
+        skillMatchRatio: analysisResult.skillMatchRatio,
+        actionVerbCount: analysisResult.actionVerbCount
+      }
     });
 
   } catch (error) {
-    console.error('Analysis error:', error);
-    res.status(500).json({ error: 'Server error during analysis' });
+    console.error('❌ Analysis error:', error.message);
+    console.error('Full error:', error);
+    res.status(500).json({ 
+      error: 'Server error during analysis',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -209,16 +214,8 @@ function performFallbackAnalysis(resumeText, jobDescription) {
   const actionVerbCount = resumeWords.filter(word => actionVerbs.includes(word)).length;
   
   return {
-    matchedKeywords: commonWords.slice(0, 10).map(word => ({
-      keyword: word,
-      category: 'general',
-      relevance: Math.random() * 0.5 + 0.5
-    })),
-    missingKeywords: uniqueJobWords.slice(0, 10).map(word => ({
-      keyword: word,
-      category: 'general',
-      importance: Math.random() * 0.5 + 0.5
-    })),
+    matchedKeywords: commonWords.slice(0, 10).filter(w => w.length > 2), // Simple string array
+    missingKeywords: uniqueJobWords.slice(0, 10).filter(w => w.length > 2), // Simple string array
     keywordMatchRatio,
     skillMatchRatio,
     actionVerbCount
@@ -242,50 +239,26 @@ async function generateSuggestions(resumeText, jobDescription, analysisResult) {
   
   // Keyword suggestions
   if (analysisResult.missingKeywords.length > 0) {
-    suggestions.push({
-      type: 'Add missing keywords',
-      category: 'keywords',
-      priority: 'high',
-      details: `Consider adding these important keywords: ${analysisResult.missingKeywords.slice(0, 5).map(k => k.keyword).join(', ')}`
-    });
+    const keywords = analysisResult.missingKeywords.slice(0, 5).join(', ');
+    suggestions.push(`Add missing keywords: ${keywords}`);
   }
   
   // Action verb suggestions
   if (analysisResult.actionVerbCount < 10) {
-    suggestions.push({
-      type: 'Use more action verbs',
-      category: 'content',
-      priority: 'medium',
-      details: 'Include more action verbs like "developed", "implemented", "optimized", "delivered" to make your resume more dynamic'
-    });
+    suggestions.push('Use more action verbs like "developed", "implemented", "optimized", "delivered" to make your resume more dynamic');
   }
   
   // Quantification suggestions
   if (!resumeText.match(/\d+%|\$\d+|\d+\+|\d+\s*(years?|months?)/i)) {
-    suggestions.push({
-      type: 'Add quantified achievements',
-      category: 'content',
-      priority: 'high',
-      details: 'Include specific numbers, percentages, and metrics to quantify your achievements (e.g., "increased performance by 25%")'
-    });
+    suggestions.push('Add quantified achievements with specific numbers, percentages, and metrics (e.g., "increased performance by 25%")');
   }
   
   // Length suggestions
   const wordCount = resumeText.split(/\s+/).length;
   if (wordCount < 200) {
-    suggestions.push({
-      type: 'Expand your resume',
-      category: 'content',
-      priority: 'medium',
-      details: 'Your resume seems brief. Consider adding more details about your responsibilities and achievements'
-    });
+    suggestions.push('Expand your resume by adding more details about your responsibilities and achievements');
   } else if (wordCount > 800) {
-    suggestions.push({
-      type: 'Condense your resume',
-      category: 'formatting',
-      priority: 'low',
-      details: 'Your resume is quite long. Consider removing less relevant information to keep it concise'
-    });
+    suggestions.push('Condense your resume by removing less relevant information to keep it concise');
   }
   
   return suggestions;

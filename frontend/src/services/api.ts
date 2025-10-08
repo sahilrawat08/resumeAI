@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 
   (process.env.NODE_ENV === 'production' 
     ? 'https://resumeai-backend.vercel.app/api' 
-    : 'http://localhost:5000/api');
+    : 'http://localhost:5001/api');
 
 // Create axios instance
 const api = axios.create({
@@ -146,6 +146,39 @@ export const resumeAPI = {
     });
     return response.data;
   },
+};
+
+// Chat History API
+export const chatAPI = {
+  // Get all chat sessions
+  getHistory: async () => {
+    const response = await api.get('/chat/history');
+    return response.data;
+  },
+
+  // Get a specific chat session
+  getSession: async (sessionId: string) => {
+    const response = await api.get(`/chat/${sessionId}`);
+    return response.data;
+  },
+
+  // Create or update chat session
+  saveSession: async (data: {
+    title?: string;
+    messages: any[];
+    resumeFileName?: string;
+    atsScore?: number;
+    sessionId?: string;
+  }) => {
+    const response = await api.post('/chat', data);
+    return response.data;
+  },
+
+  // Delete chat session
+  deleteSession: async (sessionId: string) => {
+    const response = await api.delete(`/chat/${sessionId}`);
+    return response.data;
+  }
 };
 
 export default api;

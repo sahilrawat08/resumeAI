@@ -38,12 +38,15 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
+    console.log('🔍 Login attempt with:', formData);
+
     try {
-      const response = await authAPI.login(formData);
-      login(response.token, response.user);
-      toast.success('Welcome back!');
-      navigate('/dashboard');
+      await login(formData.email, formData.password);
+      navigate('/chat');
     } catch (error: any) {
+      console.error('❌ Login error:', error);
+      console.error('❌ Error response:', error.response);
+      console.error('❌ Error data:', error.response?.data);
       toast.error(error.response?.data?.error || 'Login failed');
     } finally {
       setLoading(false);

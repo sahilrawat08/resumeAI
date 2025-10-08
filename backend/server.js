@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/upload');
 const analysisRoutes = require('./routes/analysis');
 const resumeRoutes = require('./routes/resume');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 
@@ -98,6 +99,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/analyze', analysisRoutes);
 app.use('/api/resume', resumeRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

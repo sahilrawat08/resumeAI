@@ -20,7 +20,7 @@ const analysisSchema = new mongoose.Schema({
   },
   fileType: {
     type: String,
-    enum: ['pdf', 'txt'],
+    enum: ['pdf', 'txt', 'docx'],
     required: true
   },
   atsScore: {
@@ -29,21 +29,9 @@ const analysisSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
-  matchedKeywords: [{
-    keyword: String,
-    category: String, // 'skill', 'technology', 'experience', etc.
-    relevance: Number // 0-1 score
-  }],
-  missingKeywords: [{
-    keyword: String,
-    category: String,
-    importance: Number // 0-1 score
-  }],
-  suggestions: [{
-    type: String,
-    category: String, // 'grammar', 'content', 'formatting', 'keywords'
-    priority: String // 'high', 'medium', 'low'
-  }],
+  matchedKeywords: [String], // Simple string array
+  missingKeywords: [String], // Simple string array
+  suggestions: [String], // Simple string array
   readabilityScore: {
     type: Number,
     min: 0,

@@ -58,7 +58,7 @@ const Register: React.FC = () => {
       const response = await authAPI.register(formData);
       login(response.token, response.user);
       toast.success('Account created successfully!');
-      navigate('/dashboard');
+      navigate('/chat');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Registration failed');
     } finally {
